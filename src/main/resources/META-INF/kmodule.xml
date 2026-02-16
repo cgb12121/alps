@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kmodule xmlns="http://www.drools.org/xsd/kmodule">
+  <kbase name="loanScoringKbase" packages="me.mb.alps.drools">
+    <ksession name="loanScoringSession" type="stateful" default="true"/>
+  </kbase>
+</kmodule>

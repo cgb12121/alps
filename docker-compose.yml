@@ -1,0 +1,62 @@
+# Alps app: MySQL + Zeebe (Camunda 8). Cấu hình qua .env (xem .env.example).
+# Chạy: docker compose up -d
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: alps-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-alps}
+      MYSQL_USER: ${MYSQL_USER:-dev}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-dev}
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - alps_mysql_data:/var/lib/mysql
+    networks:
+      - alps
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root}"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 25s
+
+  zeebe:
+    image: ${ZEEBE_IMAGE:-camunda/zeebe}
+    container_name: alps-zeebe
+    environment:
+      ZEEBE_BROKER_GATEWAY_NETWORK_HOST: 0.0.0.0
+    ports:
+      - "${ZEEBE_GRPC_PORT}:26500"
+      - "${ZEEBE_MONITOR_PORT}:9600"
+    volumes:
+      - alps_zeebe_data:/usr/local/zeebe/data
+    networks:
+      - alps
+  # Zeebe Simple Monitor cần Hazelcast. Hazelcast do Zeebe broker cung cấp khi chạy
+  # zeebe-hazelcast-exporter (image camunda/zeebe mặc định không có). Để dùng dashboard:
+  # - Dùng Camunda Operate (xem docs/CAMUNDA-DROOLS.md), hoặc
+  # - Bật Hazelcast exporter trên Zeebe (mount JAR + cấu hình) rồi bỏ comment block dưới.
+  # simple-monitor:
+  #     image: ghcr.io/camunda-community-hub/zeebe-simple-monitor:2.9.0
+  #     container_name: alps-monitor
+  #     environment:
+  #       ZEEBE_CLIENT_BROKER_GATEWAY_ADDRESS: zeebe:26500
+  #       ZEEBE_WORKER_HAZELCAST_CONNECTION: zeebe:5701
+  #     ports:
+  #       - "8082:8080"
+  #     depends_on:
+  #       - zeebe
+  #     networks:
+  #       - alps
+
+networks:
+  alps:
+    driver: bridge
+
+
+volumes:
+  alps_mysql_data:
+  alps_zeebe_data:

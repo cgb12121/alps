@@ -1,0 +1,61 @@
+package me.mb.alps.application.service.approver;
+
+import lombok.RequiredArgsConstructor;
+import me.mb.alps.application.event.LoanApplicationDecidedEvent;
+import me.mb.alps.application.exception.NotFoundException;
+import me.mb.alps.application.port.in.approver.CompleteManualApprovalUseCase;
+import me.mb.alps.application.port.out.LoanApplicationPersistencePort;
+import me.mb.alps.application.port.out.LoadUserPort;
+import me.mb.alps.application.port.out.PublishMessagePort;
+import me.mb.alps.domain.entity.LoanApplication;
+import me.mb.alps.domain.entity.User;
+import me.mb.alps.domain.enums.LoanStatus;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
+public class CompleteManualApprovalService implements CompleteManualApprovalUseCase {
+
+    private static final String MESSAGE_APPROVAL_DECISION = "approvalDecision";
+
+    private final LoanApplicationPersistencePort persistencePort;
+    private final LoadUserPort loadUserPort;
+    private final PublishMessagePort publishMessagePort;
+    private final ApplicationEventPublisher eventPublisher;
+
+    @Override
+    @Transactional
+    public void complete(CompleteManualApprovalCommand command) {
+        LoanApplication application = persistencePort.findById(command.applicationId())
+                .orElseThrow(() -> new NotFoundException("LoanApplication", command.applicationId()));
+        if (application.getStatus() != LoanStatus.REVIEW_REQUIRED) {
+            throw new IllegalStateException("Application is not pending manual approval: " + application.getStatus());
+        }
+        User reviewer = command.reviewedByUserId() != null
+                ? loadUserPort.findById(command.reviewedByUserId()).orElse(null)
+                : null;
+
+        publishMessagePort.publish(
+                MESSAGE_APPROVAL_DECISION,
+                application.getId().toString(),
+                Map.of(
+                        "approved", command.approved(),
+                        "reviewedByUserId", command.reviewedByUserId() != null ? command.reviewedByUserId().toString() : ""
+                )
+        );
+
+        LoanStatus newStatus = command.approved() ? LoanStatus.APPROVED : LoanStatus.REJECTED;
+        application.setStatus(newStatus);
+        application.setReviewedBy(reviewer);
+        application.setReviewedAt(LocalDateTime.now());
+        persistencePort.save(application);
+
+        eventPublisher.publishEvent(new LoanApplicationDecidedEvent(application.getId(), newStatus));
+    }
+}

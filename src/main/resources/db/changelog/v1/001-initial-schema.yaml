@@ -1,0 +1,185 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-users
+      author: alps
+      objectQuotingStrategy: QUOTE_ALL_OBJECTS
+      changes:
+        - createTable:
+            tableName: users
+            columns:
+              - column: { name: id, type: char(36), constraints: { primaryKey: true } }
+              - column: { name: username, type: varchar(128), constraints: { nullable: false, uniqueConstraintName: uk_users_username } }
+              - column: { name: display_name, type: varchar(255) }
+              - column: { name: email, type: varchar(128) }
+              - column: { name: active, type: boolean, constraints: { nullable: false } }
+
+  - changeSet:
+      id: 002-customers
+      author: alps
+      objectQuotingStrategy: QUOTE_ALL_OBJECTS
+      changes:
+        - createTable:
+            tableName: customers
+            columns:
+              - column: { name: id, type: char(36), constraints: { primaryKey: true } }
+              - column: { name: civil_id, type: varchar(32), constraints: { nullable: false, uniqueConstraintName: uk_customers_civil_id } }
+              - column: { name: full_name, type: varchar(255), constraints: { nullable: false } }
+              - column: { name: email, type: varchar(255) }
+              - column: { name: phone_number, type: varchar(32) }
+              - column: { name: monthly_income, type: "decimal(19,4)" }
+              - column: { name: credit_score, type: int }
+              - column: { name: employment_status, type: varchar(32) }
+              - column: { name: age, type: int }
+
+  - changeSet:
+      id: 003-loan_products
+      author: alps
+      objectQuotingStrategy: QUOTE_ALL_OBJECTS
+      changes:
+        - createTable:
+            tableName: loan_products
+            columns:
+              - column: { name: id, type: char(36), constraints: { primaryKey: true } }
+              - column: { name: code, type: varchar(64), constraints: { nullable: false, uniqueConstraintName: uk_loan_products_code } }
+              - column: { name: name, type: varchar(255), constraints: { nullable: false } }
+              - column: { name: min_amount, type: "decimal(19,4)", constraints: { nullable: false } }
+              - column: { name: max_amount, type: "decimal(19,4)", constraints: { nullable: false } }
+              - column: { name: min_term_months, type: int, constraints: { nullable: false } }
+              - column: { name: max_term_months, type: int, constraints: { nullable: false } }
+              - column: { name: interest_rate_annual, type: "decimal(9,4)" }
+              - column: { name: active, type: boolean, constraints: { nullable: false } }
+
+  - changeSet:
+      id: 004-loan_applications
+      author: alps
+      objectQuotingStrategy: QUOTE_ALL_OBJECTS
+      changes:
+        - createTable:
+            tableName: loan_applications
+            columns:
+              - column: { name: id, type: char(36), constraints: { primaryKey: true } }
+              - column: { name: customer_id, type: char(36), constraints: { nullable: false } }
+              - column: { name: product_id, type: char(36), constraints: { nullable: false } }
+              - column: { name: submitted_by, type: char(36) }
+              - column: { name: reviewed_by, type: char(36) }
+              - column: { name: reviewed_at, type: "datetime(6)" }
+              - column: { name: amount, type: "decimal(19,4)", constraints: { nullable: false } }
+              - column: { name: term_months, type: int, constraints: { nullable: false } }
+              - column: { name: status, type: varchar(32), constraints: { nullable: false } }
+              - column: { name: process_instance_key, type: bigint }
+              - column: { name: version, type: bigint, constraints: { nullable: false } }
+              - column: { name: created_at, type: "datetime(6)", constraints: { nullable: false } }
+              - column: { name: updated_at, type: "datetime(6)", constraints: { nullable: false } }
+        - addForeignKeyConstraint:
+            baseTableName: loan_applications
+            baseColumnNames: customer_id
+            referencedTableName: customers
+            referencedColumnNames: id
+            constraintName: fk_loan_applications_customer
+        - addForeignKeyConstraint:
+            baseTableName: loan_applications
+            baseColumnNames: product_id
+            referencedTableName: loan_products
+            referencedColumnNames: id
+            constraintName: fk_loan_applications_product
+        - addForeignKeyConstraint:
+            baseTableName: loan_applications
+            baseColumnNames: submitted_by
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_loan_applications_submitted_by
+        - addForeignKeyConstraint:
+            baseTableName: loan_applications
+            baseColumnNames: reviewed_by
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_loan_applications_reviewed_by
+
+  - changeSet:
+      id: 005-rule_set_versions
+      author: alps
+      objectQuotingStrategy: QUOTE_ALL_OBJECTS
+      changes:
+        - createTable:
+            tableName: rule_set_versions
+            columns:
+              - column: { name: id, type: char(36), constraints: { primaryKey: true } }
+              - column: { name: version, type: varchar(64), constraints: { nullable: false, uniqueConstraintName: uk_rule_set_versions_version } }
+              - column: { name: effective_from, type: "datetime(6)", constraints: { nullable: false } }
+              - column: { name: effective_to, type: "datetime(6)" }
+              - column: { name: description, type: varchar(512) }
+
+  - changeSet:
+      id: 006-risk_assessments
+      author: alps
+      objectQuotingStrategy: QUOTE_ALL_OBJECTS
+      changes:
+        - createTable:
+            tableName: risk_assessments
+            columns:
+              - column: { name: id, type: char(36), constraints: { primaryKey: true } }
+              - column: { name: application_id, type: char(36), constraints: { nullable: false } }
+              - column: { name: risk_score, type: int, constraints: { nullable: false } }
+              - column: { name: decision, type: varchar(32), constraints: { nullable: false } }
+              - column: { name: rule_reasons, type: text }
+              - column: { name: assessed_at, type: "datetime(6)", constraints: { nullable: false } }
+              - column: { name: rule_set_version_id, type: char(36) }
+        - addForeignKeyConstraint:
+            baseTableName: risk_assessments
+            baseColumnNames: application_id
+            referencedTableName: loan_applications
+            referencedColumnNames: id
+            constraintName: fk_risk_assessments_application
+        - addForeignKeyConstraint:
+            baseTableName: risk_assessments
+            baseColumnNames: rule_set_version_id
+            referencedTableName: rule_set_versions
+            referencedColumnNames: id
+            constraintName: fk_risk_assessments_rule_set_version
+
+  - changeSet:
+      id: 007-loan_application_status_history
+      author: alps
+      objectQuotingStrategy: QUOTE_ALL_OBJECTS
+      changes:
+        - createTable:
+            tableName: loan_application_status_history
+            columns:
+              - column: { name: id, type: char(36), constraints: { primaryKey: true } }
+              - column: { name: application_id, type: char(36), constraints: { nullable: false } }
+              - column: { name: from_status, type: varchar(32) }
+              - column: { name: to_status, type: varchar(32), constraints: { nullable: false } }
+              - column: { name: changed_at, type: "datetime(6)", constraints: { nullable: false } }
+              - column: { name: actor_id, type: char(36) }
+              - column: { name: comment, type: varchar(512) }
+        - addForeignKeyConstraint:
+            baseTableName: loan_application_status_history
+            baseColumnNames: application_id
+            referencedTableName: loan_applications
+            referencedColumnNames: id
+            constraintName: fk_status_history_application
+
+  - changeSet:
+      id: 008-documents
+      author: alps
+      objectQuotingStrategy: QUOTE_ALL_OBJECTS
+      changes:
+        - createTable:
+            tableName: documents
+            columns:
+              - column: { name: id, type: char(36), constraints: { primaryKey: true } }
+              - column: { name: application_id, type: char(36), constraints: { nullable: false } }
+              - column: { name: type, type: varchar(32), constraints: { nullable: false } }
+              - column: { name: status, type: varchar(32), constraints: { nullable: false } }
+              - column: { name: storage_ref, type: varchar(512) }
+              - column: { name: file_name, type: varchar(255) }
+              - column: { name: content_type, type: varchar(128) }
+              - column: { name: uploaded_at, type: "datetime(6)", constraints: { nullable: false } }
+              - column: { name: verified_at, type: "datetime(6)" }
+              - column: { name: verified_by, type: char(36) }
+        - addForeignKeyConstraint:
+            baseTableName: documents
+            baseColumnNames: application_id
+            referencedTableName: loan_applications
+            referencedColumnNames: id
+            constraintName: fk_documents_application

@@ -1,0 +1,52 @@
+package me.mb.alps.drools;
+
+import me.mb.alps.domain.enums.RiskDecision;
+import me.mb.alps.infrastructure.rules.dto.LoanScoringFactBean;
+
+dialect "java"
+
+// Mặc định: cần duyệt tay
+rule "Default manual check"
+    when
+        $f : LoanScoringFactBean(decision == null)
+    then
+        $f.setDecision(RiskDecision.MANUAL_CHECK);
+        $f.setRiskScore(50);
+        $f.setRuleReasons("Default: requires manual review");
+end
+
+// Từ chối: điểm CIC thấp
+rule "Reject low credit score"
+    when
+        $f : LoanScoringFactBean(creditScore < 50, decision == null)
+    then
+        $f.setDecision(RiskDecision.AUTO_REJECT);
+        $f.setRiskScore(Math.max(0, $f.getCreditScore() - 10));
+        $f.setRuleReasons("Credit score too low");
+end
+
+// Từ chối: thu nhập không đủ (trả nợ tối đa 40% thu nhập)
+rule "Reject insufficient income"
+    when
+        $f : LoanScoringFactBean(decision == null,
+            monthlyIncome > 0,
+            (amount / termMonths) > (monthlyIncome * 0.4))
+    then
+        $f.setDecision(RiskDecision.AUTO_REJECT);
+        $f.setRiskScore(30);
+        $f.setRuleReasons("Debt-to-income ratio too high");
+end
+
+// Tự động duyệt: điểm tốt + thu nhập ổn
+rule "Auto approve good profile"
+    when
+        $f : LoanScoringFactBean(decision == null,
+            creditScore >= 70,
+            monthlyIncome > 0,
+            (amount / termMonths) <= (monthlyIncome * 0.35),
+            age >= 18, age <= 65)
+    then
+        $f.setDecision(RiskDecision.AUTO_APPROVE);
+        $f.setRiskScore(85);
+        $f.setRuleReasons("Good credit and income ratio");
+end

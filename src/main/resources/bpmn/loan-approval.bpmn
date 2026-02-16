@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                   xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                   xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                   xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                   xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   id="Definitions_1"
+                   targetNamespace="http://alps.mb.me">
+  <bpmn:message id="Message_ApprovalDecision" name="approvalDecision">
+    <bpmn:extensionElements>
+      <zeebe:subscription correlationKey="=applicationId"/>
+    </bpmn:extensionElements>
+  </bpmn:message>
+  <bpmn:process id="loan-approval" name="Loan approval" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1" name="Start">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Activity_CheckCic"/>
+    <bpmn:serviceTask id="Activity_CheckCic" name="Check CIC">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="check-cic" retries="2"/>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_1b</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_1b" sourceRef="Activity_CheckCic" targetRef="Activity_ScoreLoan"/>
+    <bpmn:serviceTask id="Activity_ScoreLoan" name="Score loan (Drools)">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="score-loan" retries="3"/>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1b</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Activity_ScoreLoan" targetRef="Gateway_CheckDecision"/>
+    <bpmn:exclusiveGateway id="Gateway_CheckDecision" name="Phê duyệt?">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_Approved</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Rejected</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Review</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_Approved" sourceRef="Gateway_CheckDecision" targetRef="EndEvent_Approved">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=decision="APPROVED"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Rejected" sourceRef="Gateway_CheckDecision" targetRef="EndEvent_Rejected">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=decision="REJECTED"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Review" sourceRef="Gateway_CheckDecision" targetRef="MessageCatch_Approval">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=decision="REVIEW_REQUIRED"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:intermediateCatchEvent id="MessageCatch_Approval" name="Chờ duyệt tay">
+      <bpmn:incoming>Flow_Review</bpmn:incoming>
+      <bpmn:outgoing>Flow_AfterMessage</bpmn:outgoing>
+      <bpmn:messageEventDefinition messageRef="Message_ApprovalDecision"/>
+    </bpmn:intermediateCatchEvent>
+    <bpmn:sequenceFlow id="Flow_AfterMessage" sourceRef="MessageCatch_Approval" targetRef="Gateway_AfterManual"/>
+    <bpmn:exclusiveGateway id="Gateway_AfterManual" name="Kết quả duyệt tay?">
+      <bpmn:incoming>Flow_AfterMessage</bpmn:incoming>
+      <bpmn:outgoing>Flow_ManualApproved</bpmn:outgoing>
+      <bpmn:outgoing>Flow_ManualRejected</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_ManualApproved" sourceRef="Gateway_AfterManual" targetRef="EndEvent_ManualApproved">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=approved</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_ManualRejected" sourceRef="Gateway_AfterManual" targetRef="EndEvent_ManualRejected">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=not(approved)</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:endEvent id="EndEvent_Approved" name="Duyệt vay">
+      <bpmn:incoming>Flow_Approved</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="EndEvent_Rejected" name="Từ chối">
+      <bpmn:incoming>Flow_Rejected</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="EndEvent_ManualApproved" name="Duyệt tay: Chấp thuận">
+      <bpmn:incoming>Flow_ManualApproved</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="EndEvent_ManualRejected" name="Duyệt tay: Từ chối">
+      <bpmn:incoming>Flow_ManualRejected</bpmn:incoming>
+    </bpmn:endEvent>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="loan-approval">
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="152" y="102" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_CheckCic_di" bpmnElement="Activity_CheckCic">
+        <dc:Bounds x="260" y="80" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_ScoreLoan_di" bpmnElement="Activity_ScoreLoan">
+        <dc:Bounds x="420" y="80" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_CheckDecision_di" bpmnElement="Gateway_CheckDecision">
+        <dc:Bounds x="595" y="95" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="MessageCatch_Approval_di" bpmnElement="MessageCatch_Approval">
+        <dc:Bounds x="722" y="182" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_AfterManual_di" bpmnElement="Gateway_AfterManual">
+        <dc:Bounds x="825" y="95" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_Approved_di" bpmnElement="EndEvent_Approved">
+        <dc:Bounds x="722" y="72" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_Rejected_di" bpmnElement="EndEvent_Rejected">
+        <dc:Bounds x="722" y="132" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_ManualApproved_di" bpmnElement="EndEvent_ManualApproved">
+        <dc:Bounds x="952" y="72" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_ManualRejected_di" bpmnElement="EndEvent_ManualRejected">
+        <dc:Bounds x="952" y="132" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="188" y="120"/>
+        <di:waypoint x="260" y="120"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1b_di" bpmnElement="Flow_1b">
+        <di:waypoint x="360" y="120"/>
+        <di:waypoint x="420" y="120"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="520" y="120"/>
+        <di:waypoint x="595" y="120"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Approved_di" bpmnElement="Flow_Approved">
+        <di:waypoint x="645" y="108"/>
+        <di:waypoint x="722" y="90"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Rejected_di" bpmnElement="Flow_Rejected">
+        <di:waypoint x="645" y="120"/>
+        <di:waypoint x="722" y="150"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Review_di" bpmnElement="Flow_Review">
+        <di:waypoint x="645" y="132"/>
+        <di:waypoint x="740" y="200"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_AfterMessage_di" bpmnElement="Flow_AfterMessage">
+        <di:waypoint x="758" y="200"/>
+        <di:waypoint x="850" y="120"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ManualApproved_di" bpmnElement="Flow_ManualApproved">
+        <di:waypoint x="875" y="95"/>
+        <di:waypoint x="952" y="90"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ManualRejected_di" bpmnElement="Flow_ManualRejected">
+        <di:waypoint x="875" y="145"/>
+        <di:waypoint x="952" y="150"/>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
