@@ -4,9 +4,11 @@ import lombok.RequiredArgsConstructor;
 import me.mb.alps.application.event.LoanApplicationDecidedEvent;
 import me.mb.alps.application.exception.NotFoundException;
 import me.mb.alps.application.port.in.approver.CompleteManualApprovalUseCase;
+import me.mb.alps.application.port.out.ApprovalHistoryPersistencePort;
 import me.mb.alps.application.port.out.LoanApplicationPersistencePort;
 import me.mb.alps.application.port.out.LoadUserPort;
 import me.mb.alps.application.port.out.PublishMessagePort;
+import me.mb.alps.domain.entity.ApprovalHistory;
 import me.mb.alps.domain.entity.LoanApplication;
 import me.mb.alps.domain.entity.User;
 import me.mb.alps.domain.enums.LoanStatus;
@@ -16,7 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Map;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -28,6 +29,7 @@ public class CompleteManualApprovalService implements CompleteManualApprovalUseC
     private final LoadUserPort loadUserPort;
     private final PublishMessagePort publishMessagePort;
     private final ApplicationEventPublisher eventPublisher;
+    private final ApprovalHistoryPersistencePort approvalHistoryPort;
 
     @Override
     @Transactional
@@ -50,11 +52,24 @@ public class CompleteManualApprovalService implements CompleteManualApprovalUseC
                 )
         );
 
+        LoanStatus oldStatus = application.getStatus();
         LoanStatus newStatus = command.approved() ? LoanStatus.APPROVED : LoanStatus.REJECTED;
         application.setStatus(newStatus);
         application.setReviewedBy(reviewer);
         application.setReviewedAt(LocalDateTime.now());
         persistencePort.save(application);
+
+        // Lưu lịch sử duyệt
+        if (reviewer != null) {
+            ApprovalHistory history = ApprovalHistory.builder()
+                    .loanApplication(application)
+                    .approvedBy(reviewer)
+                    .oldStatus(oldStatus)
+                    .newStatus(newStatus)
+                    .comment(command.comment())
+                    .build();
+            approvalHistoryPort.save(history);
+        }
 
         eventPublisher.publishEvent(new LoanApplicationDecidedEvent(application.getId(), newStatus));
     }

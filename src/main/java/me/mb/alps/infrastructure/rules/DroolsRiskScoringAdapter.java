@@ -40,8 +40,11 @@ public class DroolsRiskScoringAdapter implements RiskScoringPort {
             String reasons = bean.getRuleReasons() != null
                     ? bean.getRuleReasons()
                     : "No rule fired";
-            log.info("Drools: result decision={}, score={}, reasons={}", decision, score, reasons);
-            return new RiskResult(score, decision, reasons);
+            java.math.BigDecimal interestRate = bean.getInterestRateAnnual() != null
+                    ? bean.getInterestRateAnnual()
+                    : java.math.BigDecimal.valueOf(12.0); // Default 12%/year if not set
+            log.info("Drools: result decision={}, score={}, interestRate={}%, reasons={}", decision, score, interestRate, reasons);
+            return new RiskResult(score, decision, reasons, interestRate);
         } finally {
             session.dispose();
         }

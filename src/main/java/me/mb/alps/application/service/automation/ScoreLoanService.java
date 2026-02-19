@@ -65,6 +65,7 @@ public class ScoreLoanService implements ScoreLoanUseCase {
             case MANUAL_CHECK -> LoanStatus.REVIEW_REQUIRED;
         };
         application.setStatus(newStatus);
+        application.setInterestRateAnnual(result.interestRateAnnual());
         LoanApplication saved = applicationPort.save(application);
         if (newStatus == LoanStatus.APPROVED || newStatus == LoanStatus.REJECTED) {
             eventPublisher.publishEvent(new LoanApplicationDecidedEvent(applicationId, newStatus));

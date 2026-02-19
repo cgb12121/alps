@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import me.mb.alps.application.port.out.NotificationPort;
 import me.mb.alps.domain.enums.LoanStatus;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -17,9 +18,9 @@ import java.util.UUID;
  * {@link JavaMailSender} do Spring Boot Mail auto-config tạo khi có spring.mail.*.
  */
 @Component
-@ConditionalOnProperty(name = "alps.notification.mail.enabled", havingValue = "true")
-@ConditionalOnBean(JavaMailSender.class)
 @RequiredArgsConstructor
+@ConditionalOnBooleanProperty(name = "alps.notification.mail.enabled")
+@ConditionalOnBean(JavaMailSender.class)
 public class EmailNotificationAdapter implements NotificationPort {
 
     private final JavaMailSender mailSender;

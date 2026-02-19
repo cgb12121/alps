@@ -2,3 +2,18 @@ databaseChangeLog:
   - include:
       file: v1/001-initial-schema.yaml
       relativeToChangelogFile: true
+  - include:
+      file: v1/002-users-role-password.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: v1/003-loan-application-interest-rate.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: v1/004-repayment-schedule.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: v1/005-approval-history-access-log.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: v1/006-repayment-penalty-fee.yaml
+      relativeToChangelogFile: true

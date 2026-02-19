@@ -5,9 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import me.mb.alps.application.event.LoanApplicationSubmittedEvent;
 import me.mb.alps.application.port.out.LoanApplicationPersistencePort;
 import me.mb.alps.application.port.out.StartProcessPort;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
@@ -22,7 +20,7 @@ import java.util.Map;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-@ConditionalOnProperty(name = "camunda.client.enabled", havingValue = "true")
+@ConditionalOnBooleanProperty(name = "camunda.client.enabled")
 public class StartProcessAfterSubmitListener {
 
     private final StartProcessPort startProcessPort;

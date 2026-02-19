@@ -1,0 +1,18 @@
+databaseChangeLog:
+  - changeSet:
+      id: 013-repayment-penalty-fee
+      author: alps
+      objectQuotingStrategy: QUOTE_ALL_OBJECTS
+      changes:
+        - addColumn:
+            tableName: repayment_schedules
+            columns:
+              - column:
+                  name: penalty_amount
+                  type: "decimal(19,4)"
+                  defaultValue: "0"
+              - column:
+                  name: fee_amount
+                  type: "decimal(19,4)"
+                  defaultValue: "0"
+

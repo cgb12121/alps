@@ -16,5 +16,5 @@ public interface RiskScoringPort {
             int age
     ) {}
 
-    record RiskResult(int riskScore, RiskDecision decision, String ruleReasons) {}
+    record RiskResult(int riskScore, RiskDecision decision, String ruleReasons, java.math.BigDecimal interestRateAnnual) {}
 }

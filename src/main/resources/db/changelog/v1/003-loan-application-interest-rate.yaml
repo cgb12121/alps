@@ -1,0 +1,13 @@
+databaseChangeLog:
+  - changeSet:
+      id: 010-loan-application-interest-rate
+      author: alps
+      objectQuotingStrategy: QUOTE_ALL_OBJECTS
+      changes:
+        - addColumn:
+            tableName: loan_applications
+            columns:
+              - column:
+                  name: interest_rate_annual
+                  type: "decimal(9,4)"
+                  remarks: "Lãi suất thực tế được áp dụng (do Drools risk-based pricing quyết định)"

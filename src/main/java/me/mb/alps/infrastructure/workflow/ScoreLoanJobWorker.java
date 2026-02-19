@@ -4,11 +4,10 @@ import io.camunda.client.annotation.JobWorker;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.client.api.worker.JobClient;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import me.mb.alps.application.port.in.automation.ScoreLoanUseCase;
 import me.mb.alps.domain.enums.LoanStatus;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
@@ -21,13 +20,13 @@ import java.util.UUID;
  * Cảnh báo "never used" của IDE là false positive.
  */
 @SuppressWarnings("unused")
+@Slf4j
 @Component
 @RequiredArgsConstructor
-@ConditionalOnProperty(name = "camunda.client.enabled", havingValue = "true")
+@ConditionalOnBooleanProperty(name = "camunda.client.enabled")
 public class ScoreLoanJobWorker {
 
     private static final String VAR_APPLICATION_ID = "applicationId";
-    private static final Logger log = LoggerFactory.getLogger(ScoreLoanJobWorker.class);
 
     private final ScoreLoanUseCase scoreLoanUseCase;
 

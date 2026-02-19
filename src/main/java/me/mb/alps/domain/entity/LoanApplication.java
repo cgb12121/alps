@@ -60,6 +60,10 @@ public class LoanApplication {
     @Column(name = "term_months", nullable = false)
     private int termMonths;
 
+    /** Lãi suất thực tế được áp dụng (%/năm). Do Drools risk-based pricing quyết định dựa trên risk score. */
+    @Column(name = "interest_rate_annual", precision = 9, scale = 4)
+    private BigDecimal interestRateAnnual;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
     @Builder.Default

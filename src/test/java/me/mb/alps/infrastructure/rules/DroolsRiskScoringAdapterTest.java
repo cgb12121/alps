@@ -10,7 +10,7 @@ import org.kie.api.runtime.KieContainer;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Unit test for Drools scoring: no Camunda, no Spring. Builds KieContainer from classpath and runs rules.
+ * Unit test for Drools scoring: no Camunda, no Spring. Builds KieContainer from the classpath and runs rules.
  */
 class DroolsRiskScoringAdapterTest {
 
@@ -31,6 +31,7 @@ class DroolsRiskScoringAdapterTest {
         assertThat(result.decision()).isEqualTo(RiskDecision.AUTO_APPROVE);
         assertThat(result.riskScore()).isEqualTo(85);
         assertThat(result.ruleReasons()).contains("Good credit");
+        assertThat(result.interestRateAnnual()).isNotNull();
     }
 
     @Test

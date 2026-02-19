@@ -16,13 +16,18 @@ public class CreateCustomerService implements CreateCustomerUseCase {
 
     @Override
     public UUID create(CreateCustomerCommand command) {
+        // Khách sau khi khai báo đủ thông tin sẽ có 600 điểm CIC nội bộ
+        boolean hasRequiredInfo = command.civilId() != null && command.fullName() != null
+                && command.monthlyIncome() != null && command.employmentStatus() != null;
+        int initialCreditScore = hasRequiredInfo ? 600 : (command.creditScore() != null ? command.creditScore() : 0);
+
         Customer customer = Customer.builder()
                 .civilId(command.civilId())
                 .fullName(command.fullName())
                 .email(command.email())
                 .phoneNumber(command.phoneNumber())
                 .monthlyIncome(command.monthlyIncome())
-                .creditScore(command.creditScore() != null ? command.creditScore() : 0)
+                .creditScore(initialCreditScore)
                 .employmentStatus(command.employmentStatus())
                 .age(command.age() != null ? command.age() : 0)
                 .build();

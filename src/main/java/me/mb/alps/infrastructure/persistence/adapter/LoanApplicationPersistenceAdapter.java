@@ -7,6 +7,7 @@ import me.mb.alps.domain.enums.LoanStatus;
 import me.mb.alps.infrastructure.persistence.jpa.LoanApplicationJpaRepository;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -33,5 +34,16 @@ public class LoanApplicationPersistenceAdapter implements LoanApplicationPersist
     @Override
     public List<LoanApplication> findByStatus(LoanStatus status) {
         return jpaRepository.findByStatusOrderByCreatedAtDesc(status);
+    }
+
+    @Override
+    public List<LoanApplication> findByCustomerIdOrderByCreatedAtDesc(UUID customerId) {
+        return jpaRepository.findByCustomer_IdOrderByCreatedAtDesc(customerId);
+    }
+
+    @Override
+    public List<LoanApplication> findAllWithFilters(LoanStatus status, UUID reviewedById,
+                                                    LocalDateTime fromDate, LocalDateTime toDate) {
+        return jpaRepository.findAllWithFilters(status, reviewedById, fromDate, toDate);
     }
 }

@@ -1,13 +1,15 @@
 package me.mb.alps.infrastructure.workflow;
 
 import me.mb.alps.application.port.out.PublishMessagePort;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
 @Component
-@ConditionalOnProperty(name = "camunda.client.enabled", havingValue = "false")
+@ConditionalOnMissingBean(ZeebePublishMessageAdapter.class)
+@ConditionalOnBooleanProperty(name = "camunda.client.enabled")
 public class PublishMessagePortStub implements PublishMessagePort {
     @Override
     public void publish(String messageName, String correlationKey, Map<String, Object> variables) {

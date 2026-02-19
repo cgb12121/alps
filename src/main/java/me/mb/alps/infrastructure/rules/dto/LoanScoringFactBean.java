@@ -20,6 +20,8 @@ public class LoanScoringFactBean {
     private RiskDecision decision;
     private int riskScore;
     private String ruleReasons;
+    /** Lãi suất (%/năm) do Drools risk-based pricing quyết định. */
+    private java.math.BigDecimal interestRateAnnual;
 
     public LoanScoringFactBean() {
     }

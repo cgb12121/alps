@@ -2,16 +2,17 @@ package me.mb.alps.infrastructure.workflow;
 
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.response.ProcessInstanceEvent;
+import io.camunda.client.api.command.DeployResourceCommandStep1;
+import io.camunda.client.api.command.DeployResourceCommandStep1.DeployResourceCommandStep2;
 import lombok.extern.slf4j.Slf4j;
 import me.mb.alps.application.port.out.StartProcessPort;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
-import java.io.InputStream;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -20,13 +21,18 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 @Slf4j
 @Component
-@ConditionalOnProperty(name = "camunda.client.enabled", havingValue = "true")
+@ConditionalOnBooleanProperty(name = "camunda.client.enabled")
 public class ZeebeStartProcessAdapter implements StartProcessPort {
 
-    private static final String BPMN_RESOURCE = "bpmn/loan-approval.bpmn";
+    private static final String[] BPMN_RESOURCES = {
+            "bpmn/loan-approval.bpmn",
+            "bpmn/overdue-penalty.bpmn",
+            "bpmn/credit-score-reward.bpmn"
+    };
 
     private final CamundaClient camundaClient;
     private final boolean deployOnStartup;
+    
     private volatile boolean deployed;
     private final ReentrantLock deployLock = new ReentrantLock();
 
@@ -48,33 +54,9 @@ public class ZeebeStartProcessAdapter implements StartProcessPort {
         return event.getProcessInstanceKey();
     }
 
-    private void ensureDeployed() {
-        if (deployed) {
-            return;
-        }
-        deployLock.lock();
-        try {
-            if (deployed) {
-                return;
-            }
-            try (InputStream in = getClass().getClassLoader().getResourceAsStream(BPMN_RESOURCE)) {
-                if (in == null) {
-                    throw new IllegalStateException("BPMN not found: " + BPMN_RESOURCE);
-                }
-                camundaClient.newDeployResourceCommand()
-                        .addResourceStream(in, "loan-approval.bpmn")
-                        .send()
-                        .join();
-                deployed = true;
-            } catch (Exception e) {
-                throw new IllegalStateException("Failed to deploy BPMN", e);
-            }
-        } finally {
-            deployLock.unlock();
-        }
-    }
-
-    /** Deploy BPMN khi app ready; nếu thất bại (Zeebe chưa chạy/sai phiên bản) chỉ log, không crash app. */
+    /**
+     * Init the camunda app when the spring application is ready
+     */
     @EventListener(ApplicationReadyEvent.class)
     public void deployIfEnabled() {
         if (!deployOnStartup) {
@@ -84,7 +66,45 @@ public class ZeebeStartProcessAdapter implements StartProcessPort {
             ensureDeployed();
             log.info("BPMN deployed successfully.");
         } catch (Exception e) {
-            log.warn("Deploy BPMN on startup failed (Zeebe có thể chưa chạy hoặc dùng REST gây lỗi). Sẽ thử lại khi submit loan. Lỗi: {}", e.getMessage());
+            log.warn("Deploy BPMN on startup failed (Zeebe có thể chưa chạy hoặc dùng REST gây lỗi). Sẽ thử lại khi submit loan.", e);
+        }
+    }
+
+    private void ensureDeployed() {
+        if (deployed) return;
+        deployLock.lock();
+        try {
+            if (deployed) return;
+
+            // Create command
+            DeployResourceCommandStep1 commandStep1 = camundaClient.newDeployResourceCommand();
+            
+            // Variable that holds Step2 (that have sent method)
+            DeployResourceCommandStep2 commandStep2 = null;
+
+            for (String resource : BPMN_RESOURCES) {
+                // If this call is the first time, call from Step1 else continue with Step2
+                if (commandStep2 == null) {
+                    commandStep2 = commandStep1.addResourceFromClasspath(resource);
+                } else {
+                    commandStep2 = commandStep2.addResourceFromClasspath(resource);
+                }
+                log.debug("Added BPMN resource: {}", resource);
+            }
+
+            // Send command (only send when have at least 1 resource
+            if (commandStep2 != null) {
+                commandStep2.send().join();
+                deployed = true;
+                log.info("Deployed BPMN resources successfully");
+            } else {
+                throw new IllegalStateException("No BPMN resources found to deploy");
+            }
+
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to deploy BPMN", e);
+        } finally {
+            deployLock.unlock();
         }
     }
 }

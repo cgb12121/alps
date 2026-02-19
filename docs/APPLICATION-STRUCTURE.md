@@ -77,3 +77,11 @@ Có thể giữ một `UseCaseConfig` hoặc tách theo actor, ví dụ:
 ## 6. Refactor đã làm
 
 - Đã tách `port.in` và `service` theo user / approver / automation / admin; controller tách tương ứng; security JWT (Nimbus) đã cấu hình.
+
+## 7. Role và đăng ký / tạo account
+
+- **Role** (mỗi account 1 role): `CUSTOMER`, `APPROVER`, `IT`, `ADMIN`. Enum `UserRole`; cột `users.role`, `users.password_hash`, `users.customer_id` (Liquibase).
+- **Đăng ký** (CUSTOMER): POST `/api/auth/register` — `{ "username", "password", "displayName", "email", "customerId"? }`. Optional: `customerId` để map user → customer (xem loan của mình).
+- **Đăng nhập**: POST `/api/auth/login` — trả về `token`, `username`, `userId`, `role`.
+- **Tạo account** (ADMIN / IT): POST `/api/accounts` — `{ "username", "password", "displayName", "email", "role" }`. Quy tắc: ADMIN chỉ tạo IT, APPROVER; IT chỉ tạo APPROVER.
+- **Phân quyền**: CUSTOMER → submit loan + GET `/api/user/loan-applications/me`; APPROVER → pending-approval, approve, reject; ADMIN → users, customers, loan-products, accounts; IT → POST `/api/accounts` (chỉ APPROVER).

@@ -12,6 +12,7 @@ public interface CompleteManualApprovalUseCase {
     record CompleteManualApprovalCommand(
             UUID applicationId,
             boolean approved,
-            UUID reviewedByUserId
+            UUID reviewedByUserId,
+            String comment  // Optional comment for approval history
     ) {}
 }

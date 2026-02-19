@@ -12,6 +12,7 @@ rule "Default manual check"
     then
         $f.setDecision(RiskDecision.MANUAL_CHECK);
         $f.setRiskScore(50);
+        $f.setInterestRateAnnual(new java.math.BigDecimal("15.0")); // Default 15%/year
         $f.setRuleReasons("Default: requires manual review");
 end
 
@@ -22,6 +23,7 @@ rule "Reject low credit score"
     then
         $f.setDecision(RiskDecision.AUTO_REJECT);
         $f.setRiskScore(Math.max(0, $f.getCreditScore() - 10));
+        $f.setInterestRateAnnual(new java.math.BigDecimal("25.0")); // High risk = high rate (rejected anyway)
         $f.setRuleReasons("Credit score too low");
 end
 
@@ -34,6 +36,7 @@ rule "Reject insufficient income"
     then
         $f.setDecision(RiskDecision.AUTO_REJECT);
         $f.setRiskScore(30);
+        $f.setInterestRateAnnual(new java.math.BigDecimal("22.0")); // High risk = high rate
         $f.setRuleReasons("Debt-to-income ratio too high");
 end
 
@@ -48,5 +51,33 @@ rule "Auto approve good profile"
     then
         $f.setDecision(RiskDecision.AUTO_APPROVE);
         $f.setRiskScore(85);
+        $f.setInterestRateAnnual(new java.math.BigDecimal("8.0")); // VIP: low risk = low rate
         $f.setRuleReasons("Good credit and income ratio");
+end
+
+// Risk-based pricing: Khách VIP (score > 800) → lãi thấp 8%
+rule "VIP pricing - low rate"
+    when
+        $f : LoanScoringFactBean(decision == null, creditScore > 80)
+    then
+        $f.setInterestRateAnnual(new java.math.BigDecimal("8.0"));
+        $f.setRuleReasons(($f.getRuleReasons() != null ? $f.getRuleReasons() + "; " : "") + "VIP rate");
+end
+
+// Risk-based pricing: Khách thường (score 60-80) → lãi trung bình 12%
+rule "Standard pricing - medium rate"
+    when
+        $f : LoanScoringFactBean(decision == null, creditScore >= 60, creditScore <= 80, interestRateAnnual == null)
+    then
+        $f.setInterestRateAnnual(new java.math.BigDecimal("12.0"));
+        $f.setRuleReasons(($f.getRuleReasons() != null ? $f.getRuleReasons() + "; " : "") + "Standard rate");
+end
+
+// Risk-based pricing: Khách rủi ro (score < 60, nhưng vẫn approve) → lãi cao 18-20%
+rule "High risk pricing - high rate"
+    when
+        $f : LoanScoringFactBean(decision == null, creditScore < 60, creditScore >= 50, interestRateAnnual == null)
+    then
+        $f.setInterestRateAnnual(new java.math.BigDecimal("18.0"));
+        $f.setRuleReasons(($f.getRuleReasons() != null ? $f.getRuleReasons() + "; " : "") + "High risk rate");
 end

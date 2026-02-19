@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                   xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                   xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                   xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                   xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   id="Definitions_CreditScoreReward"
+                   targetNamespace="http://alps.mb.me">
+  <bpmn:process id="credit-score-reward" name="Credit Score Reward" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_PaymentOnTime" name="Payment On Time">
+      <bpmn:outgoing>Flow_CheckLoanCriteria</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="Flow_CheckLoanCriteria" sourceRef="StartEvent_PaymentOnTime" targetRef="Activity_CheckLoanCriteria"/>
+    <bpmn:serviceTask id="Activity_CheckLoanCriteria" name="Check Loan Amount &amp; Term">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="check-loan-criteria" retries="2"/>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_CheckLoanCriteria</bpmn:incoming>
+      <bpmn:outgoing>Flow_EvaluateReward</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_EvaluateReward" sourceRef="Activity_CheckLoanCriteria" targetRef="Gateway_EvaluateReward"/>
+    <bpmn:exclusiveGateway id="Gateway_EvaluateReward" name="Eligible for Reward?">
+      <bpmn:incoming>Flow_EvaluateReward</bpmn:incoming>
+      <bpmn:outgoing>Flow_ApplyReward</bpmn:outgoing>
+      <bpmn:outgoing>Flow_NoReward</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_ApplyReward" name="Eligible" sourceRef="Gateway_EvaluateReward" targetRef="Activity_ApplyReward">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=eligibleForReward = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:serviceTask id="Activity_ApplyReward" name="Apply Credit Score Reward">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="apply-credit-score-reward" retries="2"/>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_ApplyReward</bpmn:incoming>
+      <bpmn:outgoing>Flow_EndReward</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_EndReward" sourceRef="Activity_ApplyReward" targetRef="EndEvent_Reward"/>
+    <bpmn:endEvent id="EndEvent_Reward" name="Reward Applied"/>
+    <bpmn:sequenceFlow id="Flow_NoReward" name="Not Eligible" sourceRef="Gateway_EvaluateReward" targetRef="EndEvent_NoReward">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=eligibleForReward = false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:endEvent id="EndEvent_NoReward" name="No Reward"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_CreditScoreReward">
+    <bpmndi:BPMNPlane id="BPMNPlane_CreditScoreReward" bpmnElement="credit-score-reward">
+      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_PaymentOnTime" bpmnElement="StartEvent_PaymentOnTime">
+        <dc:Bounds x="179" y="99" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="_BPMNShape_Activity_CheckLoanCriteria" bpmnElement="Activity_CheckLoanCriteria">
+        <dc:Bounds x="270" y="77" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="_BPMNShape_Gateway_EvaluateReward" bpmnElement="Gateway_EvaluateReward" isMarkerVisible="true">
+        <dc:Bounds x="425" y="92" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="_BPMNShape_Activity_ApplyReward" bpmnElement="Activity_ApplyReward">
+        <dc:Bounds x="530" y="77" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="_BPMNShape_EndEvent_Reward" bpmnElement="EndEvent_Reward">
+        <dc:Bounds x="692" y="99" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="_BPMNShape_EndEvent_NoReward" bpmnElement="EndEvent_NoReward">
+        <dc:Bounds x="530" y="214" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_CheckLoanCriteria" bpmnElement="Flow_CheckLoanCriteria">
+        <di:waypoint x="215" y="117"/>
+        <di:waypoint x="270" y="117"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_EvaluateReward" bpmnElement="Flow_EvaluateReward">
+        <di:waypoint x="370" y="117"/>
+        <di:waypoint x="425" y="117"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_ApplyReward" bpmnElement="Flow_ApplyReward">
+        <di:waypoint x="450" y="92"/>
+        <di:waypoint x="450" y="77"/>
+        <di:waypoint x="530" y="77"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_EndReward" bpmnElement="Flow_EndReward">
+        <di:waypoint x="630" y="117"/>
+        <di:waypoint x="692" y="117"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_NoReward" bpmnElement="Flow_NoReward">
+        <di:waypoint x="450" y="142"/>
+        <di:waypoint x="450" y="232"/>
+        <di:waypoint x="530" y="232"/>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -1,5 +1,6 @@
 package me.mb.alps.infrastructure.notification;
 
+import lombok.extern.slf4j.Slf4j;
 import me.mb.alps.application.event.LoanApplicationDecidedEvent;
 import me.mb.alps.application.port.out.LoanApplicationPersistencePort;
 import me.mb.alps.application.port.out.NotificationPort;
@@ -15,6 +16,7 @@ import java.util.List;
 /**
  * Khi có quyết định APPROVED/REJECTED (tự động hoặc duyệt tay), gửi thông báo (email/Slack).
  */
+@Slf4j
 @Component
 public class LoanApplicationDecidedNotificationListener {
 
@@ -41,7 +43,7 @@ public class LoanApplicationDecidedNotificationListener {
                 try {
                     port.notifyDecision(event.applicationId(), event.newStatus(), email, name);
                 } catch (Exception e) {
-                    // log and continue with other channels
+                    log.error("Error notifying loan application decided", e);
                 }
             }
         });

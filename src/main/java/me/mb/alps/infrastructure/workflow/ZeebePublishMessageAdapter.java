@@ -3,14 +3,14 @@ package me.mb.alps.infrastructure.workflow;
 import io.camunda.client.CamundaClient;
 import lombok.RequiredArgsConstructor;
 import me.mb.alps.application.port.out.PublishMessagePort;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
-@ConditionalOnProperty(name = "camunda.client.enabled", havingValue = "true")
+@ConditionalOnBooleanProperty(name = "camunda.client.enabled")
 public class ZeebePublishMessageAdapter implements PublishMessagePort {
 
     private final CamundaClient camundaClient;

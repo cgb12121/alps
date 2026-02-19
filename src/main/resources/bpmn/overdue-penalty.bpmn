@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                   xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                   xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                   xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                   xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   id="Definitions_OverduePenalty"
+                   targetNamespace="http://alps.mb.me">
+  <bpmn:process id="overdue-penalty" name="Overdue Penalty" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_Overdue" name="Overdue Payment Detected">
+      <bpmn:outgoing>Flow_CalculateDays</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="Flow_CalculateDays" sourceRef="StartEvent_Overdue" targetRef="Activity_CalculateDays"/>
+    <bpmn:serviceTask id="Activity_CalculateDays" name="Calculate Overdue Days">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="calculate-overdue-days" retries="2"/>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_CalculateDays</bpmn:incoming>
+      <bpmn:outgoing>Flow_CheckSeverity</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_CheckSeverity" sourceRef="Activity_CalculateDays" targetRef="Gateway_CheckSeverity"/>
+    <bpmn:exclusiveGateway id="Gateway_CheckSeverity" name="Severity?">
+      <bpmn:incoming>Flow_CheckSeverity</bpmn:incoming>
+      <bpmn:outgoing>Flow_LightPenalty</bpmn:outgoing>
+      <bpmn:outgoing>Flow_HeavyPenalty</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_LightPenalty" name="1 day" sourceRef="Gateway_CheckSeverity" targetRef="Activity_LightPenalty">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=overdueDays &lt;= 1</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:serviceTask id="Activity_LightPenalty" name="Apply Light Penalty">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="apply-light-penalty" retries="2"/>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_LightPenalty</bpmn:incoming>
+      <bpmn:outgoing>Flow_EndLight</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_EndLight" sourceRef="Activity_LightPenalty" targetRef="EndEvent_Light"/>
+    <bpmn:endEvent id="EndEvent_Light" name="Light Penalty Applied"/>
+    <bpmn:sequenceFlow id="Flow_HeavyPenalty" name="> 1 day" sourceRef="Gateway_CheckSeverity" targetRef="Activity_HeavyPenalty">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=overdueDays &gt; 1</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:serviceTask id="Activity_HeavyPenalty" name="Apply Heavy Penalty + Deduct CIC Score">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="apply-heavy-penalty" retries="2"/>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_HeavyPenalty</bpmn:incoming>
+      <bpmn:outgoing>Flow_EndHeavy</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_EndHeavy" sourceRef="Activity_HeavyPenalty" targetRef="EndEvent_Heavy"/>
+    <bpmn:endEvent id="EndEvent_Heavy" name="Heavy Penalty Applied"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_OverduePenalty">
+    <bpmndi:BPMNPlane id="BPMNPlane_OverduePenalty" bpmnElement="overdue-penalty">
+      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_Overdue" bpmnElement="StartEvent_Overdue">
+        <dc:Bounds x="179" y="99" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="_BPMNShape_Activity_CalculateDays" bpmnElement="Activity_CalculateDays">
+        <dc:Bounds x="270" y="77" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="_BPMNShape_Gateway_CheckSeverity" bpmnElement="Gateway_CheckSeverity" isMarkerVisible="true">
+        <dc:Bounds x="425" y="92" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="_BPMNShape_Activity_LightPenalty" bpmnElement="Activity_LightPenalty">
+        <dc:Bounds x="530" y="77" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="_BPMNShape_EndEvent_Light" bpmnElement="EndEvent_Light">
+        <dc:Bounds x="692" y="99" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="_BPMNShape_Activity_HeavyPenalty" bpmnElement="Activity_HeavyPenalty">
+        <dc:Bounds x="530" y="192" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="_BPMNShape_EndEvent_Heavy" bpmnElement="EndEvent_Heavy">
+        <dc:Bounds x="692" y="214" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_CalculateDays" bpmnElement="Flow_CalculateDays">
+        <di:waypoint x="215" y="117"/>
+        <di:waypoint x="270" y="117"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_CheckSeverity" bpmnElement="Flow_CheckSeverity">
+        <di:waypoint x="370" y="117"/>
+        <di:waypoint x="425" y="117"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_LightPenalty" bpmnElement="Flow_LightPenalty">
+        <di:waypoint x="450" y="92"/>
+        <di:waypoint x="450" y="77"/>
+        <di:waypoint x="530" y="77"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_EndLight" bpmnElement="Flow_EndLight">
+        <di:waypoint x="630" y="117"/>
+        <di:waypoint x="692" y="117"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_HeavyPenalty" bpmnElement="Flow_HeavyPenalty">
+        <di:waypoint x="450" y="142"/>
+        <di:waypoint x="450" y="232"/>
+        <di:waypoint x="530" y="232"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_EndHeavy" bpmnElement="Flow_EndHeavy">
+        <di:waypoint x="630" y="232"/>
+        <di:waypoint x="692" y="232"/>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

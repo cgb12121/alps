@@ -5,6 +5,7 @@ import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.client.api.worker.JobClient;
 import lombok.RequiredArgsConstructor;
 import me.mb.alps.application.port.out.CICCheckPort;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
@@ -19,7 +20,7 @@ import java.util.UUID;
 @SuppressWarnings("unused")
 @Component
 @RequiredArgsConstructor
-@ConditionalOnProperty(name = "camunda.client.enabled", havingValue = "true")
+@ConditionalOnBooleanProperty(name = "camunda.client.enabled")
 public class CheckCicJobWorker {
 
     private static final String VAR_APPLICATION_ID = "applicationId";
