@@ -20,7 +20,7 @@ public class UpdateCustomerCreditScoreAdapter implements UpdateCustomerCreditSco
     public void updateCreditScore(UUID customerId, int newScore) {
         Customer customer = loadCustomerPort.findById(customerId)
                 .orElseThrow(() -> new IllegalStateException("Customer not found: " + customerId));
-        customer.setCreditScore(newScore);
+        customer.updateCreditScore(newScore);
         saveCustomerPort.save(customer);
     }
 

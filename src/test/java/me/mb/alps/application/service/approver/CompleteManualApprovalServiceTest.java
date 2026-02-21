@@ -8,6 +8,7 @@ import me.mb.alps.domain.entity.Customer;
 import me.mb.alps.domain.entity.LoanApplication;
 import me.mb.alps.domain.entity.LoanProduct;
 import me.mb.alps.domain.enums.LoanStatus;
+import me.mb.alps.domain.exception.DomainException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -105,14 +106,25 @@ class CompleteManualApprovalServiceTest {
     }
 
     @Test
-    void complete_statusNotReviewRequired_throwsIllegalStateException() {
-        application.setStatus(LoanStatus.APPROVED);
+    void complete_statusNotReviewRequired_throwsDomainException() {
+        application = LoanApplication.builder()
+                .id(APP_ID)
+                .customer(application.getCustomer())
+                .product(application.getProduct())
+                .amount(application.getAmount())
+                .termMonths(application.getTermMonths())
+                .status(LoanStatus.APPROVED)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+        when(persistencePort.findById(APP_ID)).thenReturn(Optional.of(application));
+
         var command = new me.mb.alps.application.port.in.approver.CompleteManualApprovalUseCase.CompleteManualApprovalCommand(
                 APP_ID, true, null, null
         );
 
         assertThatThrownBy(() -> completeManualApprovalService.complete(command))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("not pending manual approval");
+                .isInstanceOf(DomainException.class)
+                .hasMessageContaining("APPROVED");
     }
 }

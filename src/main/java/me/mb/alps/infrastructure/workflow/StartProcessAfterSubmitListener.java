@@ -36,7 +36,7 @@ public class StartProcessAfterSubmitListener {
                     Map.of("applicationId", applicationId.toString())
             );
             persistencePort.findById(applicationId).ifPresent(app -> {
-                app.setProcessInstanceKey(processKey);
+                app.linkProcessInstance(processKey);
                 persistencePort.save(app);
                 log.debug("Started process for application {} -> processInstanceKey={}", applicationId, processKey);
             });

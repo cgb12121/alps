@@ -36,9 +36,6 @@ public class CompleteManualApprovalService implements CompleteManualApprovalUseC
     public void complete(CompleteManualApprovalCommand command) {
         LoanApplication application = persistencePort.findById(command.applicationId())
                 .orElseThrow(() -> new NotFoundException("LoanApplication", command.applicationId()));
-        if (application.getStatus() != LoanStatus.REVIEW_REQUIRED) {
-            throw new IllegalStateException("Application is not pending manual approval: " + application.getStatus());
-        }
         User reviewer = command.reviewedByUserId() != null
                 ? loadUserPort.findById(command.reviewedByUserId()).orElse(null)
                 : null;
@@ -53,10 +50,8 @@ public class CompleteManualApprovalService implements CompleteManualApprovalUseC
         );
 
         LoanStatus oldStatus = application.getStatus();
-        LoanStatus newStatus = command.approved() ? LoanStatus.APPROVED : LoanStatus.REJECTED;
-        application.setStatus(newStatus);
-        application.setReviewedBy(reviewer);
-        application.setReviewedAt(LocalDateTime.now());
+        application.completeManualApproval(command.approved(), reviewer, LocalDateTime.now());
+        LoanStatus newStatus = application.getStatus();
         persistencePort.save(application);
 
         // Lưu lịch sử duyệt

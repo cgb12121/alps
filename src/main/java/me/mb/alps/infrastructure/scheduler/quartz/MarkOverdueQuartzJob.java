@@ -40,7 +40,7 @@ public class MarkOverdueQuartzJob implements Job {
 
         log.info("Found {} overdue payments", overdue.size());
         for (RepaymentSchedule schedule : overdue) {
-            schedule.setStatus(PaymentStatus.OVERDUE);
+            schedule.markOverdue();
             schedulePort.save(schedule);
             log.info("Marked schedule {} as OVERDUE", schedule.getId());
 

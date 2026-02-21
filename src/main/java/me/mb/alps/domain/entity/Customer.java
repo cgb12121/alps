@@ -13,6 +13,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import me.mb.alps.domain.enums.EmploymentStatus;
+import me.mb.alps.domain.exception.DomainException;
 import org.hibernate.annotations.UuidGenerator;
 
 import java.math.BigDecimal;
@@ -48,6 +49,7 @@ public class Customer {
     private BigDecimal monthlyIncome;
 
     @Column(name = "credit_score")
+    @Setter(AccessLevel.NONE)
     private int creditScore;
 
     @Enumerated(EnumType.STRING)
@@ -56,4 +58,13 @@ public class Customer {
 
     @Column(name = "age")
     private int age;
+
+    /** Cập nhật điểm tín dụng (từ workflow thưởng/phạt hoặc CIC). */
+    public void updateCreditScore(int newScore) {
+        if (newScore < 0 || newScore > 1000) {
+            throw new DomainException(
+                    "Điểm tín dụng phải trong khoảng 0–1000: " + newScore);
+        }
+        this.creditScore = newScore;
+    }
 }

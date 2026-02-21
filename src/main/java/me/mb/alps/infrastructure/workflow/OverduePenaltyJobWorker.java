@@ -108,15 +108,7 @@ public class OverduePenaltyJobWorker {
             // - Sau đó: % trên phần còn nợ, nhưng có trần để tránh "giết" khách
             BigDecimal penalty = getPenalty(overdueDays, schedule);
 
-            java.math.BigDecimal currentPenalty = schedule.getPenaltyAmount() != null ? schedule.getPenaltyAmount() : java.math.BigDecimal.ZERO;
-            schedule.setPenaltyAmount(currentPenalty.add(penalty));
-            // Cập nhật totalAmount nếu bạn đang lưu cứng
-            schedule.setTotalAmount(
-                    schedule.getPrincipalAmount()
-                            .add(schedule.getInterestAmount())
-                            .add(schedule.getPenaltyAmount())
-                            .add(schedule.getFeeAmount() != null ? schedule.getFeeAmount() : java.math.BigDecimal.ZERO)
-            );
+            schedule.applyPenalty(penalty);
             schedulePort.save(schedule);
 
             // 2) Phạt CIC: trừ điểm nhưng có trần và không tụt dưới 300

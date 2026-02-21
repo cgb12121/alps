@@ -80,7 +80,7 @@ public class MakePaymentService implements MakePaymentUseCase {
                     break;
                 }
 
-                BigDecimal scheduleRemaining = schedule.getTotalAmount().subtract(schedule.getPaidAmount());
+                BigDecimal scheduleRemaining = schedule.getRemainingAmount();
                 BigDecimal paymentForThisSchedule = remainingAmount.min(scheduleRemaining);
 
                 if (firstPaymentId == null) {
@@ -96,38 +96,20 @@ public class MakePaymentService implements MakePaymentUseCase {
     }
 
     private PaymentResult processPayment(RepaymentSchedule schedule, BigDecimal amount) {
-        BigDecimal remaining = schedule.getTotalAmount().subtract(schedule.getPaidAmount());
-
-        if (amount.compareTo(remaining) > 0) {
-            throw new IllegalArgumentException("Payment amount exceeds remaining balance");
-        }
-
-        BigDecimal newPaidAmount = schedule.getPaidAmount().add(amount);
-        schedule.setPaidAmount(newPaidAmount);
-
-        boolean isFullyPaid = false;
-        boolean isOnTime = false;
-
-        if (newPaidAmount.compareTo(schedule.getTotalAmount()) >= 0) {
-            schedule.setStatus(PaymentStatus.PAID);
-            schedule.setPaidDate(LocalDate.now());
-            isFullyPaid = true;
-            // Kiểm tra trả đúng hạn (trả trước hoặc đúng ngày dueDate)
-            isOnTime = !LocalDate.now().isAfter(schedule.getDueDate());
-        } else {
-            schedule.setStatus(PaymentStatus.PARTIALLY_PAID);
-        }
-
+        LocalDate today = LocalDate.now();
+        schedule.recordPayment(amount, today);
         schedulePort.save(schedule);
+
+        boolean isFullyPaid = schedule.getStatus() == PaymentStatus.PAID;
+        boolean isOnTime = !today.isAfter(schedule.getDueDate());
 
         // Trigger workflow cộng điểm nếu trả đúng hạn và đã trả đủ
         if (isFullyPaid && isOnTime && startProcessPort != null) {
             try {
-                long processKey = startProcessPort.startProcess(
+                startProcessPort.startProcess(
                         "credit-score-reward",
                         Map.of("loanApplicationId", schedule.getLoanApplication().getId().toString())
                 );
-                // Log không cần thiết vì đã có trong StartProcessPort
             } catch (Exception e) {
                 // Log nhưng không fail payment nếu workflow không chạy được
                 // (Camunda có thể không chạy trong môi trường dev)
